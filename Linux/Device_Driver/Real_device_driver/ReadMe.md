@@ -1,6 +1,7 @@
 # Linux Device Driver Tutorial – Programming
 
-This repository is a collection of example Linux kernel modules and character device drivers from an introductory device driver tutorial series. It focuses on practical programming: building, loading, and testing real drivers on Linux.
+- This repository is a collection of example Linux kernel modules and character device drivers from an introductory device driver tutorial series.
+- It focuses on practical programming: building, loading, and testing real drivers on Linux.
 
 ## Overview
 
