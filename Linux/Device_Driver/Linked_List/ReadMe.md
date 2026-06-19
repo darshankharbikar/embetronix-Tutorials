@@ -677,6 +677,684 @@ list_for_each_entry_reverse()
 ```
 
 ---
+# Linux Device Driver - Linked List Example Program
+
+## Overview
+
+This example combines multiple Linux kernel concepts:
+
+* Character Device Driver
+* Interrupt Handling
+* Workqueue
+* Kernel Linked List
+* Dynamic Memory Allocation (`kmalloc`)
+* Safe List Traversal
+* Safe Node Deletion
+
+The driver demonstrates how to:
+
+1. Receive data from userspace.
+2. Trigger a software interrupt.
+3. Schedule a Workqueue.
+4. Create a linked list node inside the Workqueue.
+5. Add the node to a kernel linked list.
+6. Traverse and print the linked list.
+7. Delete all nodes during module removal.
+
+---
+
+# High-Level Architecture
+
+```text
+echo 10 > /dev/etx_device
+           |
+           v
+      Write Function
+           |
+           v
+   Software Interrupt
+           |
+           v
+        ISR
+           |
+           v
+     queue_work()
+           |
+           v
+      Workqueue
+           |
+           v
+   Create Linked List Node
+           |
+           v
+    Add Node To List
+           |
+           v
+ cat /dev/etx_device
+           |
+           v
+   Traverse Linked List
+           |
+           v
+     Print All Nodes
+```
+
+---
+
+# Core Data Structure
+
+## Linked List Node
+
+```c
+struct my_list
+{
+    struct list_head list;
+    int data;
+};
+```
+
+### Purpose
+
+| Member | Description                   |
+| ------ | ----------------------------- |
+| list   | Linux kernel linked list node |
+| data   | User supplied value           |
+
+Each node stores one integer value.
+
+---
+
+# Creating List Head
+
+```c
+LIST_HEAD(Head_Node);
+```
+
+Creates and initializes the list head.
+
+Equivalent Concept:
+
+```text
+Head_Node
+   |
+   +--> Empty List
+```
+
+Initially:
+
+```text
+Head_Node.next = Head_Node
+Head_Node.prev = Head_Node
+```
+
+---
+
+# Workqueue Function
+
+The actual linked list node is created inside the Workqueue.
+
+```c
+static void workqueue_fn(
+        struct work_struct *work)
+{
+    struct my_list *temp_node;
+
+    temp_node =
+        kmalloc(
+            sizeof(struct my_list),
+            GFP_KERNEL);
+
+    temp_node->data = etx_value;
+
+    INIT_LIST_HEAD(
+            &temp_node->list);
+
+    list_add_tail(
+            &temp_node->list,
+            &Head_Node);
+}
+```
+
+---
+
+# What Happens Here?
+
+## Step 1
+
+Allocate memory.
+
+```c
+kmalloc()
+```
+
+Creates:
+
+```text
++----------------+
+| struct my_list |
++----------------+
+```
+
+---
+
+## Step 2
+
+Store received value.
+
+```c
+temp_node->data = etx_value;
+```
+
+Example:
+
+```text
+data = 10
+```
+
+---
+
+## Step 3
+
+Initialize embedded list.
+
+```c
+INIT_LIST_HEAD()
+```
+
+---
+
+## Step 4
+
+Insert into linked list.
+
+```c
+list_add_tail()
+```
+
+Example:
+
+Before:
+
+```text
+HEAD
+```
+
+After Writing 10:
+
+```text
+HEAD <-> [10]
+```
+
+After Writing 20:
+
+```text
+HEAD <-> [10] <-> [20]
+```
+
+After Writing 30:
+
+```text
+HEAD <-> [10] <-> [20] <-> [30]
+```
+
+---
+
+# Interrupt Handler
+
+```c
+static irqreturn_t irq_handler(
+        int irq,
+        void *dev_id)
+{
+    queue_work(
+            own_workqueue,
+            &work);
+
+    return IRQ_HANDLED;
+}
+```
+
+Purpose:
+
+```text
+Interrupt
+    |
+    v
+Schedule Workqueue
+```
+
+The ISR does not create nodes directly.
+
+It schedules deferred processing.
+
+---
+
+# Write Operation
+
+```c
+static ssize_t etx_write(...)
+{
+    sscanf(buf,"%d",&etx_value);
+
+    asm("int $0x3B");
+
+    return len;
+}
+```
+
+---
+
+# Write Flow
+
+Example:
+
+```bash
+echo 10 > /dev/etx_device
+```
+
+Execution:
+
+```text
+User Writes 10
+      |
+      v
+etx_write()
+      |
+      v
+etx_value = 10
+      |
+      v
+Software Interrupt
+      |
+      v
+ISR
+      |
+      v
+Workqueue
+      |
+      v
+Create Node
+      |
+      v
+Add Node
+```
+
+---
+
+# Reading the Linked List
+
+## Traversal
+
+```c
+list_for_each_entry(
+        temp,
+        &Head_Node,
+        list)
+{
+    printk(
+      "Node data=%d\n",
+      temp->data);
+}
+```
+
+---
+
+# Example
+
+Current List:
+
+```text
+HEAD
+ |
+ +--> 10
+ |
+ +--> 20
+ |
+ +--> 30
+```
+
+Output:
+
+```text
+Node 0 data = 10
+Node 1 data = 20
+Node 2 data = 30
+
+Total Nodes = 3
+```
+
+---
+
+# Traversal Macro
+
+```c
+list_for_each_entry(
+        pos,
+        head,
+        member);
+```
+
+Parameters:
+
+| Parameter | Description               |
+| --------- | ------------------------- |
+| pos       | Node pointer              |
+| head      | List head                 |
+| member    | Embedded list_head member |
+
+Preferred Linux kernel traversal method.
+
+---
+
+# Example Session
+
+## Add First Node
+
+```bash
+echo 10 > /dev/etx_device
+```
+
+List:
+
+```text
+HEAD
+ |
+ +--> 10
+```
+
+---
+
+## Add Second Node
+
+```bash
+echo 20 > /dev/etx_device
+```
+
+List:
+
+```text
+HEAD
+ |
+ +--> 10
+ |
+ +--> 20
+```
+
+---
+
+## Add Third Node
+
+```bash
+echo 30 > /dev/etx_device
+```
+
+List:
+
+```text
+HEAD
+ |
+ +--> 10
+ |
+ +--> 20
+ |
+ +--> 30
+```
+
+---
+
+## Read Nodes
+
+```bash
+cat /dev/etx_device
+```
+
+Output:
+
+```text
+Node 0 data = 10
+Node 1 data = 20
+Node 2 data = 30
+
+Total Nodes = 3
+```
+
+---
+
+# Deleting All Nodes
+
+During module removal:
+
+```c
+list_for_each_entry_safe(
+        cursor,
+        temp,
+        &Head_Node,
+        list)
+{
+    list_del(
+            &cursor->list);
+
+    kfree(cursor);
+}
+```
+
+---
+
+# Why Safe Traversal?
+
+Unsafe:
+
+```c
+list_for_each_entry()
+```
+
+Problem:
+
+```text
+Delete Current Node
+       |
+       v
+Next Pointer Invalid
+```
+
+May crash.
+
+---
+
+Safe:
+
+```c
+list_for_each_entry_safe()
+```
+
+Stores next node before deletion.
+
+Suitable for:
+
+```text
+Delete While Traversing
+```
+
+---
+
+# Module Removal Flow
+
+```text
+rmmod driver
+      |
+      v
+Traverse List
+      |
+      v
+list_del()
+      |
+      v
+kfree()
+      |
+      v
+Destroy Workqueue
+      |
+      v
+free_irq()
+      |
+      v
+Driver Removed
+```
+
+---
+
+# Memory Management
+
+## Allocation
+
+```c
+kmalloc(
+        sizeof(struct my_list),
+        GFP_KERNEL);
+```
+
+Creates:
+
+```text
+Kernel Heap
+      |
+      +--> Node
+```
+
+---
+
+## Free
+
+```c
+kfree(node);
+```
+
+Releases memory.
+
+Important:
+
+```text
+list_del()
+does NOT free memory
+```
+
+Both operations are required.
+
+---
+
+# Why Linux Uses Embedded list_head?
+
+Instead of:
+
+```c
+struct node
+{
+    int data;
+    struct node *next;
+};
+```
+
+Linux uses:
+
+```c
+struct my_list
+{
+    struct list_head list;
+    int data;
+};
+```
+
+Advantages:
+
+* Generic implementation
+* Reusable APIs
+* Better cache locality
+* Single memory allocation
+* Used throughout kernel subsystems
+
+This intrusive-list design is a common Linux kernel pattern.
+
+---
+
+# Important APIs Used
+
+## Linked List
+
+```c
+LIST_HEAD()
+
+INIT_LIST_HEAD()
+
+list_add_tail()
+
+list_for_each_entry()
+
+list_for_each_entry_safe()
+
+list_del()
+```
+
+---
+
+## Memory
+
+```c
+kmalloc()
+
+kfree()
+```
+
+---
+
+## Workqueue
+
+```c
+create_workqueue()
+
+queue_work()
+
+destroy_workqueue()
+```
+
+---
+
+## Interrupt
+
+```c
+request_irq()
+
+free_irq()
+```
+
+---
+
+# Driver Concept Demonstrated
+
+This example is valuable because it combines multiple Linux driver concepts in one workflow:
+
+```text
+Userspace
+    |
+    v
+Character Driver
+    |
+    v
+Interrupt
+    |
+    v
+ISR
+    |
+    v
+Workqueue
+    |
+    v
+Linked List
+    |
+    v
+Kernel Memory Management
+```
+
+---
 
 # Key Takeaways
 
@@ -690,6 +1368,18 @@ list_for_each_entry_reverse()
 * `list_for_each_entry()` is the preferred traversal method.
 * `list_for_each_entry_safe()` should be used when deleting nodes during traversal.
 * Linked lists are extensively used throughout Linux kernel subsystems and device drivers.
+
+* `LIST_HEAD()` creates the linked list head.
+* Each node embeds `struct list_head`.
+* Nodes are dynamically allocated using `kmalloc()`.
+* `list_add_tail()` appends nodes to the list.
+* Interrupts trigger the Workqueue.
+* Workqueue creates linked list nodes.
+* `list_for_each_entry()` traverses the list.
+* `list_for_each_entry_safe()` is used when deleting nodes.
+* `list_del()` removes a node from the list but does not free memory.
+* `kfree()` must be called to release allocated memory.
+* This example demonstrates a complete producer-storage-traversal-cleanup workflow inside a Linux device driver.
 
 
 # Conclusion
