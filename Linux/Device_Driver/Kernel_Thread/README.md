@@ -2,7 +2,8 @@
 
 ## Overview
 
-A Kernel Thread (kthread) is a thread that runs entirely in kernel space and is managed by the Linux kernel scheduler. Unlike user-space threads, kernel threads do not belong to a user process and are typically used for background kernel activities, deferred processing, monitoring, and driver-specific tasks.
+- A Kernel Thread (kthread) is a thread that runs entirely in kernel space and is managed by the Linux kernel scheduler.
+- Unlike user-space threads, kernel threads do not belong to a user process and are typically used for background kernel activities, deferred processing, monitoring, and driver-specific tasks.
 
 Common kernel threads visible on a Linux system include:
 
