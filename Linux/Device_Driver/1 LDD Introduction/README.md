@@ -54,8 +54,6 @@ Before following along:
 - A Linux environment (for example, Ubuntu) with kernel headers installed  
 - Ability to use the terminal and run basic compilation commands
 
-## Disclaimer and Credits
-
-This README is a high-level summary intended for learning and personal use.  
-Please read the original tutorial at embetronicx.com and respect its author’s intellectual property 
-when using or sharing material.
+REFER: 
+- https://github.com/darshankharbikar/raspberry-pi-4b
+- https://embetronicx.com/tutorials/linux/device-drivers/setup-ubuntu-and-raspberry-pi-linux-device-driver-tutorial/
