@@ -677,6 +677,584 @@ Threaded IRQ
 * Device drivers register ISRs using `request_irq()`.
 * Interrupt statistics can be viewed using `/proc/interrupts`.
 
+# Linux Device Driver - Interrupt Example Program
+
+## Overview
+
+This example demonstrates how to:
+
+* Register an Interrupt Service Routine (ISR)
+* Handle interrupts in a Linux device driver
+* Use `request_irq()`
+* Use `free_irq()`
+* Trigger a software-generated interrupt for testing
+* Observe interrupt execution through kernel logs
+
+The example uses **IRQ 11** and a character device driver. Instead of real hardware, the interrupt is generated through software for learning purposes.
+
+---
+
+# Learning Objectives
+
+After completing this example, you should understand:
+
+* IRQ registration
+* IRQ release
+* Interrupt handler implementation
+* Shared interrupts
+* Software-triggered interrupts
+* Interrupt debugging using `dmesg`
+
+---
+
+# Interrupt Handler
+
+An Interrupt Service Routine (ISR) executes whenever the registered IRQ occurs.
+
+```c
+#define IRQ_NO 11
+
+static irqreturn_t irq_handler(
+                int irq,
+                void *dev_id)
+{
+    printk(KERN_INFO
+           "Shared IRQ: Interrupt Occurred\n");
+
+    return IRQ_HANDLED;
+}
+```
+
+### Parameters
+
+| Parameter | Description               |
+| --------- | ------------------------- |
+| irq       | IRQ number that triggered |
+| dev_id    | Device-specific pointer   |
+
+### Return Values
+
+```c
+IRQ_HANDLED
+```
+
+Interrupt processed successfully.
+
+```c
+IRQ_NONE
+```
+
+Interrupt not for this device.
+
+---
+
+# Important Interrupt APIs
+
+## request_irq()
+
+Registers an interrupt handler.
+
+```c
+int request_irq(
+        unsigned int irq,
+        irq_handler_t handler,
+        unsigned long flags,
+        const char *name,
+        void *dev_id
+);
+```
+
+### Parameters
+
+| Parameter | Description           |
+| --------- | --------------------- |
+| irq       | IRQ number            |
+| handler   | ISR function          |
+| flags     | IRQ flags             |
+| name      | Device name           |
+| dev_id    | Unique device pointer |
+
+### Example
+
+```c
+if (request_irq(
+        IRQ_NO,
+        irq_handler,
+        IRQF_SHARED,
+        "etx_device",
+        (void *)irq_handler))
+{
+    printk(KERN_INFO
+           "Cannot register IRQ\n");
+}
+```
+
+`request_irq()` may sleep and therefore cannot be called from interrupt context.
+
+---
+
+## free_irq()
+
+Releases a previously registered interrupt.
+
+```c
+free_irq(
+        IRQ_NO,
+        (void *)irq_handler
+);
+```
+
+Always call this during module removal.
+
+---
+
+# Common IRQ Flags
+
+## IRQF_SHARED
+
+Allows multiple devices to share the same interrupt line.
+
+```c
+IRQF_SHARED
+```
+
+When shared IRQs are used:
+
+* Every handler gets called
+* Each handler determines if interrupt belongs to it
+* Unique `dev_id` is required
+
+```c
+request_irq(
+        IRQ_NO,
+        irq_handler,
+        IRQF_SHARED,
+        "etx_device",
+        dev_id);
+```
+
+---
+
+# Driver Initialization Flow
+
+```text
+Module Load
+    |
+    v
+Register Character Device
+    |
+    v
+Create Device Class
+    |
+    v
+Create Device Node
+    |
+    v
+Create Sysfs Entry
+    |
+    v
+Register IRQ
+    |
+    v
+Ready To Receive Interrupts
+```
+
+---
+
+# Registering the Interrupt
+
+Inside driver initialization:
+
+```c
+if (request_irq(
+        IRQ_NO,
+        irq_handler,
+        IRQF_SHARED,
+        "etx_device",
+        (void *)irq_handler))
+{
+    printk(KERN_INFO
+           "Cannot register IRQ\n");
+
+    goto irq_error;
+}
+```
+
+If successful:
+
+```text
+IRQ 11 Registered
+```
+
+---
+
+# Triggering Interrupt Without Hardware
+
+Normally:
+
+```text
+Hardware
+    |
+    v
+Interrupt Controller
+    |
+    v
+CPU
+    |
+    v
+ISR
+```
+
+For learning purposes, the tutorial uses a software interrupt.
+
+---
+
+## x86 Interrupt Vector Mapping
+
+Linux maps IRQs to interrupt vectors.
+
+Example:
+
+```text
+FIRST_EXTERNAL_VECTOR = 0x20
+
+IRQ0  -> Vector 0x30
+IRQ11 -> Vector 0x3B
+```
+
+Therefore:
+
+```asm
+int $0x3B
+```
+
+raises IRQ11 in the example.
+
+---
+
+# Trigger Location
+
+Interrupt is generated when user reads:
+
+```bash
+cat /dev/etx_device
+```
+
+Inside the driver's read function:
+
+```c
+asm("int $0x3B");
+```
+
+This invokes the ISR and demonstrates interrupt handling without external hardware.
+
+---
+
+# Interrupt Execution Flow
+
+```text
+User Executes:
+
+cat /dev/etx_device
+
+        |
+        v
+
+Driver Read Function
+
+        |
+        v
+
+Software Interrupt
+
+        |
+        v
+
+IRQ 11 Triggered
+
+        |
+        v
+
+irq_handler()
+
+        |
+        v
+
+"Shared IRQ: Interrupt Occurred"
+
+        |
+        v
+
+Return IRQ_HANDLED
+```
+
+---
+
+# Driver Cleanup
+
+During module removal:
+
+```c
+free_irq(
+        IRQ_NO,
+        (void *)irq_handler
+);
+```
+
+Complete cleanup:
+
+```c
+static void __exit etx_driver_exit(void)
+{
+    free_irq(
+            IRQ_NO,
+            (void *)irq_handler);
+
+    kobject_put(kobj_ref);
+
+    device_destroy(
+            dev_class,
+            dev);
+
+    class_destroy(dev_class);
+
+    cdev_del(&etx_cdev);
+
+    unregister_chrdev_region(
+            dev,
+            1);
+}
+```
+
+---
+
+# Build Driver
+
+## Makefile
+
+```make
+obj-m += driver.o
+
+KDIR = /lib/modules/$(shell uname -r)/build
+
+all:
+	make -C $(KDIR) M=$(PWD) modules
+
+clean:
+	make -C $(KDIR) M=$(PWD) clean
+```
+
+---
+
+## Compile
+
+```bash
+make
+```
+
+---
+
+# Load Driver
+
+```bash
+sudo insmod driver.ko
+```
+
+Verify:
+
+```bash
+dmesg
+```
+
+Expected:
+
+```text
+Device Driver Insert...Done!!!
+```
+
+---
+
+# Trigger Interrupt
+
+Read the device file:
+
+```bash
+sudo cat /dev/etx_device
+```
+
+This executes:
+
+```text
+Read Function
+    |
+    v
+Software Interrupt
+    |
+    v
+ISR
+```
+
+---
+
+# Verify Using dmesg
+
+```bash
+dmesg
+```
+
+Example Output:
+
+```text
+Major = 246 Minor = 0
+
+Device Driver Insert...Done!!!
+
+Device File Opened...!!!
+
+Read function
+
+Shared IRQ: Interrupt Occurred
+
+Device File Closed...!!!
+```
+
+This confirms:
+
+* Device opened
+* Read executed
+* Interrupt generated
+* ISR executed
+* Device closed
+
+---
+
+# View System Interrupt Statistics
+
+```bash
+cat /proc/interrupts
+```
+
+Example:
+
+```text
+CPU0
+
+11:   25   IO-APIC   etx_device
+```
+
+Shows:
+
+* IRQ number
+* Number of occurrences
+* Device using IRQ
+
+---
+
+# Important Rules for ISR
+
+### Allowed
+
+* Read hardware status
+* Clear interrupt flag
+* Wake wait queue
+* Schedule workqueue
+* Update counters
+
+### Avoid
+
+```c
+msleep()
+schedule()
+mutex_lock()
+copy_to_user()
+copy_from_user()
+```
+
+Reason:
+
+```text
+ISR executes in interrupt context.
+Sleeping is not allowed.
+```
+
+---
+
+# Real Hardware Equivalent
+
+Instead of:
+
+```asm
+int $0x3B
+```
+
+a real driver receives interrupts from:
+
+```text
+GPIO Edge
+
+UART RX Complete
+
+SPI Transfer Complete
+
+I2C Event
+
+DMA Completion
+
+Timer Expiry
+
+Network Packet Arrival
+
+USB Events
+```
+
+The same ISR registration process is used.
+
+---
+
+# Key APIs Summary
+
+## Interrupt Registration
+
+```c
+request_irq()
+free_irq()
+```
+
+## Interrupt Status
+
+```c
+IRQ_HANDLED
+IRQ_NONE
+```
+
+## Common Flags
+
+```c
+IRQF_SHARED
+IRQF_TIMER
+IRQF_DISABLED
+```
+
+## Debugging
+
+```bash
+dmesg
+cat /proc/interrupts
+```
+
+---
+
+# Key Takeaways
+
+* `request_irq()` registers an ISR with the kernel.
+* `free_irq()` releases the interrupt during cleanup.
+* ISR must return `IRQ_HANDLED` or `IRQ_NONE`.
+* ISR runs in interrupt context and must not sleep.
+* The tutorial demonstrates interrupts without hardware using a software-generated interrupt.
+* Reading `/dev/etx_device` triggers IRQ11.
+* Interrupt activity can be verified using `dmesg`.
+* Real device drivers use the same mechanism with GPIO, UART, SPI, I2C, DMA, and other hardware interrupts.
+
 
 ## Conclusion
 This is just a basic linux device driver. This will explain about the Interrupts in the linux device driver.
