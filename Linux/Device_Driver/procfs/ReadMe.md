@@ -324,17 +324,6 @@ Key differences:
 
 Reference: procfs vs sysfs for device drivers [web:22].
 
-## Credits and Note on Copyright
-
-This example is inspired by tutorials explaining procfs in Linux kernel modules.  
-Refer to additional resources for deeper understanding:
-
-- procfs vs sysfs for device drivers [web:22]
-- Linux kernel documentation on procfs usage [web:23]
-- proc pseudo file system and SCSI subsystem [web:25]
-- Tutorial on creating and reading `/proc` files from kernel modules [web:27]
-
-Please respect original authors’ intellectual property. Use these examples as learning aids and adapt them in your own words and style.
 
 
 ## Conslusion
