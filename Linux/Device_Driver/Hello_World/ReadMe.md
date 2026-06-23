@@ -13,7 +13,7 @@ The main goals of this example are:
 
 ## Files in this Repository
 
-- `first_driver.c` – The main driver source file implementing a character device
+- `hello_world.c` – The main driver source file implementing a character device
 - `Makefile` – Uses the kernel build system to build the module
 - `README.md` – This documentation
 
