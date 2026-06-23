@@ -3,9 +3,9 @@ refer: https://embetronicx.com/linux-device-driver-tutorials/
 Contents
 1. [Introduction](https://github.com/darshankharbikar/embetronix-Tutorials/tree/master/Linux/Device_Driver/1%20LDD%20Introduction)
 2. [First Driver](https://github.com/darshankharbikar/embetronix-Tutorials/tree/master/Linux/Device_Driver/Hello_World)
-3. Passing Arguments
-4. Major & Minor Number
-5. Creating Device File
+3. [Passing Arguments](https://embetronicx.com/tutorials/linux/device-drivers/linux-device-driver-tutorial-part-3-passing-arguments-to-device-driver/)
+4. [Major & Minor Number](https://embetronicx.com/tutorials/linux/device-drivers/character-device-driver-major-number-and-minor-number/)
+5. [Creating Device File](https://embetronicx.com/tutorials/linux/device-drivers/device-file-creation-for-character-drivers/)
 6. File Operations
 7. Real Device Driver
 8. IOCTL Tutorial
