@@ -3,10 +3,10 @@ refer: https://embetronicx.com/linux-device-driver-tutorials/
 Contents
 1. [Introduction](https://github.com/darshankharbikar/embetronix-Tutorials/tree/master/Linux/Device_Driver/1%20LDD%20Introduction)
 2. [First Driver](https://github.com/darshankharbikar/embetronix-Tutorials/tree/master/Linux/Device_Driver/Hello_World)
-3. [Passing Arguments](https://embetronicx.com/tutorials/linux/device-drivers/linux-device-driver-tutorial-part-3-passing-arguments-to-device-driver/)
-4. [Major & Minor Number](https://embetronicx.com/tutorials/linux/device-drivers/character-device-driver-major-number-and-minor-number/)
-5. [Creating Device File](https://embetronicx.com/tutorials/linux/device-drivers/device-file-creation-for-character-drivers/)
-6. File Operations
+3. [Passing Arguments](https://github.com/darshankharbikar/embetronix-Tutorials/tree/master/Linux/Device_Driver/Passing_arguments_to_Linux_device_driver)
+4. [Major & Minor Number](https://github.com/darshankharbikar/embetronix-Tutorials/tree/master/Linux/Device_Driver/Major_and_Minor_number)
+5. [Creating Device File](https://github.com/darshankharbikar/embetronix-Tutorials/tree/master/Linux/Device_Driver/Device_File_Creation)
+6. [File Operations](https://github.com/darshankharbikar/embetronix-Tutorials/tree/master/Linux/Device_Driver/File_Operations)
 7. Real Device Driver
 8. IOCTL Tutorial
 9. Procfs Tutorial
